@@ -20,28 +20,11 @@ class _InspectionListScreenState extends State<InspectionListScreen> {
   @override
   void initState() {
     super.initState();
-    _refreshList();
-  }
-
-  void _refreshList() {
-    setState(() {
-      _inspectionList = DatabaseHelper.instance.readAllInspections();
-    });
-  }
-
-  void _logout() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
-    }
+    refresh();
   }
 
   // Helper to format date
-  String _formatDate(String dateString) {
+  String formatDate(String dateString) {
     try {
       DateTime date = DateTime.parse(dateString);
       return DateFormat('MMM d, y • h:mm a').format(date);
@@ -51,7 +34,7 @@ class _InspectionListScreenState extends State<InspectionListScreen> {
   }
 
   // Helper to get color based on rating
-  Color _getRatingColor(double rating) {
+  Color getcolorRating(double rating) {
     if (rating >= 4.0) return Colors.green;
     if (rating >= 2.5) return Colors.orange;
     return Colors.red;
@@ -60,19 +43,19 @@ class _InspectionListScreenState extends State<InspectionListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100], // Light background for contrast
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
-        title: const Text(
+        title: Text(
           "My Inspections",
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
-            onPressed: _logout,
-            icon: const Icon(Icons.logout, color: Colors.redAccent),
+            onPressed: logout,
+            icon: Icon(Icons.logout, color: Colors.redAccent),
             tooltip: 'Logout',
           ),
         ],
@@ -81,19 +64,21 @@ class _InspectionListScreenState extends State<InspectionListScreen> {
         onPressed: () async {
           await Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const AddInspectionScreen()),
+            MaterialPageRoute(
+              builder: (context) => const AddInspectionScreen(),
+            ),
           );
-          _refreshList();
+          refresh();
         },
         backgroundColor: Colors.blueAccent,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text("New Inspection", style: TextStyle(color: Colors.white)),
+        icon: Icon(Icons.add, color: Colors.white),
+        label: Text("New Inspection", style: TextStyle(color: Colors.white)),
       ),
       body: FutureBuilder<List<Inspection>>(
         future: _inspectionList,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(child: CircularProgressIndicator());
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return _buildEmptyState();
@@ -112,18 +97,39 @@ class _InspectionListScreenState extends State<InspectionListScreen> {
     );
   }
 
+  void refresh() {
+    setState(() {
+      _inspectionList = DatabaseHelper.instance.readAllInspections();
+    });
+  }
+
+  void logout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    }
+  }
+
   Widget _buildEmptyState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.assignment_outlined, size: 80, color: Colors.grey[400]),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Text(
             "No inspections yet",
-            style: TextStyle(fontSize: 18, color: Colors.grey[600], fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             "Tap the + button to add one.",
             style: TextStyle(color: Colors.grey[500]),
@@ -134,7 +140,6 @@ class _InspectionListScreenState extends State<InspectionListScreen> {
   }
 
   Widget _buildInspectionCard(Inspection item) {
-    // Assuming 'rating' is a string or number. Let's parse it safely.
     double ratingVal = double.tryParse(item.rating.toString()) ?? 0.0;
 
     return GestureDetector(
@@ -145,7 +150,7 @@ class _InspectionListScreenState extends State<InspectionListScreen> {
             builder: (context) => InspectionDetailScreen(inspection: item),
           ),
         );
-        _refreshList();
+        refresh();
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
@@ -154,7 +159,7 @@ class _InspectionListScreenState extends State<InspectionListScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black,
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -162,7 +167,7 @@ class _InspectionListScreenState extends State<InspectionListScreen> {
         ),
         child: Column(
           children: [
-            // Top Section: Icon and Property Name
+            //Icon and Property Name
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
@@ -171,19 +176,23 @@ class _InspectionListScreenState extends State<InspectionListScreen> {
                     width: 50,
                     height: 50,
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: Colors.blue,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.home_work_rounded, color: Colors.blueAccent, size: 28),
+                    child: Icon(
+                      Icons.home_work_rounded,
+                      color: Colors.blueAccent,
+                      size: 28,
+                    ),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           item.propertyName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
@@ -191,14 +200,21 @@ class _InspectionListScreenState extends State<InspectionListScreen> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.calendar_today, size: 12, color: Colors.grey[500]),
-                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.calendar_today,
+                              size: 12,
+                              color: Colors.grey[500],
+                            ),
+                            SizedBox(width: 4),
                             Text(
-                              _formatDate(item.dateCreated),
-                              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                              formatDate(item.dateCreated),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[500],
+                              ),
                             ),
                           ],
                         ),
@@ -208,33 +224,43 @@ class _InspectionListScreenState extends State<InspectionListScreen> {
                 ],
               ),
             ),
-            
+
             // Divider
             Divider(height: 1, color: Colors.grey[200]),
 
-            // Bottom Section: Rating and Action
+            //Rating and Action
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 12.0,
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: _getRatingColor(ratingVal).withOpacity(0.1),
+                          color: getcolorRating(ratingVal),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.star, size: 16, color: _getRatingColor(ratingVal)),
-                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.star,
+                              size: 16,
+                              color: getcolorRating(ratingVal),
+                            ),
+                            SizedBox(width: 4),
                             Text(
                               "$ratingVal / 5",
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: _getRatingColor(ratingVal),
+                                color: getcolorRating(ratingVal),
                               ),
                             ),
                           ],
@@ -242,7 +268,7 @@ class _InspectionListScreenState extends State<InspectionListScreen> {
                       ),
                     ],
                   ),
-                  const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                  Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
                 ],
               ),
             ),

@@ -10,19 +10,44 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _usernameController = TextEditingController();
+  TextEditingController usernameController = TextEditingController();
 
-  // 处理登录逻辑
-  void _login() async {
-    if (_usernameController.text.isNotEmpty) {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Inspector Login")),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.house_rounded, size: 80, color: Colors.blue),
+            SizedBox(height: 20),
+            TextField(
+              controller: usernameController,
+              decoration: InputDecoration(
+                labelText: "Enter Username",
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.person),
+              ),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: login,
+              style: ElevatedButton.styleFrom(minimumSize: Size.fromHeight(50)),
+              child: Text("LOGIN"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void login() async {
+    if (usernameController.text.isNotEmpty) {
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      
-      // 1. 保存登录状态
       await prefs.setBool('isLoggedIn', true);
-      // 2. 保存用户名 (题目要求 username only)
-      await prefs.setString('username', _usernameController.text);
-
-      // 3. 跳转到列表页，并移除当前的登录页路由（禁止返回）
+      await prefs.setString('username', usernameController.text);
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -30,43 +55,9 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } else {
-      // 简单的空值提示
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a username")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Please enter a username")));
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Inspector Login")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.house_rounded, size: 80, color: Colors.blue),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _usernameController,
-              decoration: const InputDecoration(
-                labelText: "Enter Username",
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person),
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _login,
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50), // 按钮宽度填满
-              ),
-              child: const Text("LOGIN"),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

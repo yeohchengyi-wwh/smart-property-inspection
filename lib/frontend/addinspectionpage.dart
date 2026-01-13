@@ -14,23 +14,28 @@ class AddInspectionScreen extends StatefulWidget {
 }
 
 class _AddInspectionScreenState extends State<AddInspectionScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _descController = TextEditingController();
+  final formKey = GlobalKey<FormState>();
+  TextEditingController nameController = TextEditingController();
+  TextEditingController descriptionController = TextEditingController();
 
-  String _rating = 'Good';
-  List<String> _imagePaths = [];
-  Position? _currentPosition;
-  bool _isLoadingLoc = false;
+  String rating = 'Good';
+  List<String> imagePaths = [];
+  Position? currentPosition;
+  bool isLoadingLoc = false;
 
   // Rating color helper
-  Color _getRatingColor(String rating) {
+  Color colorRating(String rating) {
     switch (rating) {
-      case 'Excellent': return Colors.green;
-      case 'Good': return Colors.blue;
-      case 'Fair': return Colors.orange;
-      case 'Poor': return Colors.red;
-      default: return Colors.grey;
+      case 'Excellent':
+        return Colors.green;
+      case 'Good':
+        return Colors.blue;
+      case 'Fair':
+        return Colors.orange;
+      case 'Poor':
+        return Colors.red;
+      default:
+        return Colors.grey;
     }
   }
 
@@ -38,16 +43,16 @@ class _AddInspectionScreenState extends State<AddInspectionScreen> {
   void initState() {
     super.initState();
     if (widget.inspection != null) {
-      _nameController.text = widget.inspection!.propertyName;
-      _descController.text = widget.inspection!.description;
-      _rating = widget.inspection!.rating;
+      nameController.text = widget.inspection!.propertyName;
+      descriptionController.text = widget.inspection!.description;
+      rating = widget.inspection!.rating;
       if (widget.inspection!.photos.isNotEmpty) {
-        _imagePaths = widget.inspection!.photos.split(',');
+        imagePaths = widget.inspection!.photos.split(',');
       }
       // Pre-load existing location if available
       if (widget.inspection!.latitude != 0.0) {
         // We create a dummy Position object for UI display purposes based on saved data
-        _currentPosition = Position(
+        currentPosition = Position(
           longitude: widget.inspection!.longitude,
           latitude: widget.inspection!.latitude,
           timestamp: DateTime.now(),
@@ -55,111 +60,12 @@ class _AddInspectionScreenState extends State<AddInspectionScreen> {
           altitude: 0,
           heading: 0,
           speed: 0,
-          speedAccuracy: 0, 
-          altitudeAccuracy: 0, 
-          headingAccuracy: 0
+          speedAccuracy: 0,
+          altitudeAccuracy: 0,
+          headingAccuracy: 0,
         );
       }
     }
-  }
-
-  // --- 1. Camera Logic ---
-  Future<void> _pickImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? photo = await picker.pickImage(source: ImageSource.camera);
-
-    if (photo != null) {
-      setState(() {
-        _imagePaths.add(photo.path);
-      });
-    }
-  }
-
-  void _removeImage(int index) {
-    setState(() {
-      _imagePaths.removeAt(index);
-    });
-  }
-
-  // --- 2. GPS Logic ---
-  Future<void> _getLocation() async {
-    setState(() => _isLoadingLoc = true);
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        setState(() => _isLoadingLoc = false);
-        return;
-      }
-    }
-
-    Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-
-    setState(() {
-      _currentPosition = position;
-      _isLoadingLoc = false;
-    });
-  }
-
-  // --- 3. Save Logic ---
-  void _saveRecord() async {
-    if (_formKey.currentState!.validate()) {
-      if (_imagePaths.length < 3 && widget.inspection == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text("Requirement: Take at least 3 photos."),
-            backgroundColor: Colors.red[700],
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        return;
-      }
-
-      double lat = _currentPosition?.latitude ?? 0.0;
-      double lng = _currentPosition?.longitude ?? 0.0;
-
-      Inspection newInspection = Inspection(
-        id: widget.inspection?.id,
-        propertyName: _nameController.text,
-        description: _descController.text,
-        rating: _rating,
-        latitude: lat,
-        longitude: lng,
-        dateCreated: widget.inspection?.dateCreated ?? DateTime.now().toString(),
-        photos: _imagePaths.join(','),
-      );
-
-      if (widget.inspection == null) {
-        await DatabaseHelper.instance.create(newInspection);
-      } else {
-        await DatabaseHelper.instance.update(newInspection);
-      }
-
-      if (mounted) Navigator.pop(context);
-    }
-  }
-
-  // --- UI Components ---
-
-  InputDecoration _inputDecor(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon, color: Colors.blueAccent),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
-      ),
-      filled: true,
-      fillColor: Colors.white,
-    );
   }
 
   @override
@@ -172,39 +78,59 @@ class _AddInspectionScreenState extends State<AddInspectionScreen> {
         foregroundColor: Colors.black87,
         title: Text(
           widget.inspection == null ? "New Inspection" : "Edit Inspection",
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style:  TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
-          key: _formKey,
+          key: formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Section 1: Property Info
-              const Text("PROPERTY DETAILS", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _nameController,
-                decoration: _inputDecor("Property Name / Address", Icons.home_work_outlined),
-                validator: (val) => val!.isEmpty ? "Property name is required" : null,
+              //Property Info
+              Text(
+                "PROPERTY DETAILS",
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 8),
+              TextFormField(
+                controller: nameController,
+                decoration: inputDecoration(
+                  "Property Name / Address",
+                  Icons.home_work_outlined,
+                ),
+                validator: (val) =>
+                    val!.isEmpty ? "Property name is required" : null,
+              ),
+              SizedBox(height: 16),
 
               TextFormField(
-                controller: _descController,
-                decoration: _inputDecor("Description / Issues", Icons.notes),
+                controller: descriptionController,
+                decoration: inputDecoration("Description / Issues", Icons.notes),
                 maxLines: 3,
-                validator: (val) => val!.isEmpty ? "Description is required" : null,
+                validator: (val) =>
+                    val!.isEmpty ? "Description is required" : null,
               ),
-              const SizedBox(height: 16),
-
-              // Section 2: Assessment
-              const Text("ASSESSMENT", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-              const SizedBox(height: 8),
+              SizedBox(height: 16),
+              Text(
+                "ASSESSMENT",
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                ),
+              ),
+              SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
@@ -212,30 +138,50 @@ class _AddInspectionScreenState extends State<AddInspectionScreen> {
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
-                    value: _rating,
+                    value: rating,
                     isExpanded: true,
-                    icon: const Icon(Icons.arrow_drop_down_circle, color: Colors.blueAccent),
+                    icon:  Icon(
+                      Icons.arrow_drop_down_circle,
+                      color: Colors.blueAccent,
+                    ),
                     items: ['Excellent', 'Good', 'Fair', 'Poor'].map((label) {
                       return DropdownMenuItem(
                         value: label,
                         child: Row(
                           children: [
-                            Icon(Icons.circle, color: _getRatingColor(label), size: 14),
-                            const SizedBox(width: 10),
-                            Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+                            Icon(
+                              Icons.circle,
+                              color: colorRating(label),
+                              size: 14,
+                            ),
+                             SizedBox(width: 10),
+                            Text(
+                              label,
+                              style:  TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ],
                         ),
                       );
                     }).toList(),
-                    onChanged: (val) => setState(() => _rating = val!),
+                    onChanged: (val) => setState(() => rating = val!),
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
 
-              // Section 3: Location
-              const Text("LOCATION", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-              const SizedBox(height: 8),
+              SizedBox(height: 24),
+
+              //Location
+              Text(
+                "LOCATION",
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                ),
+              ),
+              SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -246,86 +192,117 @@ class _AddInspectionScreenState extends State<AddInspectionScreen> {
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding:  EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
+                        color: Colors.blue,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        _currentPosition != null ? Icons.location_on : Icons.location_off,
+                        currentPosition != null
+                            ? Icons.location_on
+                            : Icons.location_off,
                         color: Colors.blueAccent,
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _currentPosition != null ? "Location Locked" : "No Location Data",
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            currentPosition != null
+                                ? "Location Locked"
+                                : "No Location Data",
+                            style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           Text(
-                            _currentPosition != null
-                                ? "${_currentPosition!.latitude.toStringAsFixed(5)}, ${_currentPosition!.longitude.toStringAsFixed(5)}"
+                            currentPosition != null
+                                ? "${currentPosition!.latitude.toStringAsFixed(5)}, ${currentPosition!.longitude.toStringAsFixed(5)}"
                                 : "Tap button to fetch GPS",
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
                           ),
                         ],
                       ),
                     ),
                     IconButton(
-                      onPressed: _getLocation,
-                      icon: _isLoadingLoc
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.my_location, color: Colors.blueAccent),
+                      onPressed: getLocation,
+                      icon: isLoadingLoc
+                          ?  SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          :  Icon(
+                              Icons.my_location,
+                              color: Colors.blueAccent,
+                            ),
                       tooltip: "Get GPS",
-                    )
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
 
-              // Section 4: Photos
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("EVIDENCE PHOTOS", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
                   Text(
-                    "${_imagePaths.length} / 3 required",
+                    "EVIDENCE PHOTOS",
                     style: TextStyle(
                       fontSize: 12,
-                      color: _imagePaths.length >= 3 ? Colors.green : Colors.red,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  Text(
+                    "${imagePaths.length} / 3 required",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: imagePaths.length >= 3
+                          ? Colors.green
+                          : Colors.red,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+               SizedBox(height: 8),
               SizedBox(
                 height: 110,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  itemCount: _imagePaths.length + 1, // +1 for the Add button
-                  separatorBuilder: (ctx, i) => const SizedBox(width: 12),
+                  itemCount: imagePaths.length + 1, // +1 for the Add button
+                  separatorBuilder: (ctx, i) =>  SizedBox(width: 12),
                   itemBuilder: (context, index) {
-                    // The last item is the "Add Photo" button
-                    if (index == _imagePaths.length) {
+                    if (index == imagePaths.length) {
                       return GestureDetector(
-                        onTap: _pickImage,
+                        onTap: pickImage,
                         child: Container(
                           width: 100,
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.blueAccent, style: BorderStyle.solid, width: 1),
+                            border: Border.all(
+                              color: Colors.blueAccent,
+                              style: BorderStyle.solid,
+                              width: 1,
+                            ),
                           ),
-                          child: const Column(
+                          child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.camera_alt, color: Colors.blueAccent),
                               SizedBox(height: 4),
-                              Text("Add Photo", style: TextStyle(color: Colors.blueAccent, fontSize: 12)),
+                              Text(
+                                "Add Photo",
+                                style: TextStyle(
+                                  color: Colors.blueAccent,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -338,7 +315,7 @@ class _AddInspectionScreenState extends State<AddInspectionScreen> {
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: Image.file(
-                            File(_imagePaths[index]),
+                            File(imagePaths[index]),
                             width: 110,
                             height: 110,
                             fit: BoxFit.cover,
@@ -348,14 +325,18 @@ class _AddInspectionScreenState extends State<AddInspectionScreen> {
                           top: 4,
                           right: 4,
                           child: GestureDetector(
-                            onTap: () => _removeImage(index),
+                            onTap: () => removeImage(index),
                             child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
+                              padding: EdgeInsets.all(4),
+                              decoration: BoxDecoration(
                                 color: Colors.black54,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.close, color: Colors.white, size: 14),
+                              child: Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 14,
+                              ),
                             ),
                           ),
                         ),
@@ -364,29 +345,133 @@ class _AddInspectionScreenState extends State<AddInspectionScreen> {
                   },
                 ),
               ),
-              
-              const SizedBox(height: 40),
+
+              SizedBox(height: 40),
 
               // Save Button
               ElevatedButton(
-                onPressed: _saveRecord,
+                onPressed: saveRecord,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blueAccent,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   elevation: 5,
                 ),
-                child: const Text(
+                child: Text(
                   "SAVE INSPECTION",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
+                  ),
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
             ],
           ),
         ),
       ),
+    );
+    
+  }
+
+   //Camera
+  Future<void> pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? photo = await picker.pickImage(source: ImageSource.camera);
+
+    if (photo != null) {
+      setState(() {
+        imagePaths.add(photo.path);
+      });
+    }
+  }
+
+  void removeImage(int index) {
+    setState(() {
+      imagePaths.removeAt(index);
+    });
+  }
+
+  //GPS Logic
+  Future<void> getLocation() async {
+    setState(() => isLoadingLoc = true);
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        setState(() => isLoadingLoc = false);
+        return;
+      }
+    }
+
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    setState(() {
+      currentPosition = position;
+      isLoadingLoc = false;
+    });
+  }
+
+  void saveRecord() async {
+    if (formKey.currentState!.validate()) {
+      if (imagePaths.length < 3 && widget.inspection == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:  Text("Requirement: Please take at least 3 photos..."),
+            backgroundColor: Colors.red[700],
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      double lat = currentPosition?.latitude ?? 0.0;
+      double lng = currentPosition?.longitude ?? 0.0;
+
+      Inspection newInspection = Inspection(
+        id: widget.inspection?.id,
+        propertyName: nameController.text,
+        description: descriptionController.text,
+        rating: rating,
+        latitude: lat,
+        longitude: lng,
+        dateCreated:
+            widget.inspection?.dateCreated ?? DateTime.now().toString(),
+        photos: imagePaths.join(','),
+      );
+
+      if (widget.inspection == null) {
+        await DatabaseHelper.instance.create(newInspection);
+      } else {
+        await DatabaseHelper.instance.update(newInspection);
+      }
+
+      if (mounted) Navigator.pop(context);
+    }
+  }
+
+  InputDecoration inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: Colors.blueAccent),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide:  BorderSide(color: Colors.blueAccent, width: 2),
+      ),
+      filled: true,
+      fillColor: Colors.white,
     );
   }
 }

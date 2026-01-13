@@ -17,24 +17,313 @@ class InspectionDetailScreen extends StatefulWidget {
 
 class _InspectionDetailScreenState extends State<InspectionDetailScreen> {
   // Fix: Google Maps URL Scheme
-  void _openMap() async {
-    final double lat = widget.inspection.latitude;
-    final double lng = widget.inspection.longitude;
-    
+  void openMap() async {
+    double lat = widget.inspection.latitude;
+    double lng = widget.inspection.longitude;
+
     // Using the official Google Maps query parameter
-    final Uri url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+    final Uri url = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
+    );
 
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not launch Maps')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Could not launch Maps')));
       }
     }
   }
 
-  // Fix: Add Confirmation Dialog for Delete
-  void _confirmDelete() {
+  // Helper for dates
+  String formatDate(String dateString) {
+    try {
+      return DateFormat(
+        'MMMM d, yyyy • h:mm a',
+      ).format(DateTime.parse(dateString));
+    } catch (e) {
+      return dateString;
+    }
+  }
+
+  // Helper for Rating Colors
+  Color colorRating(String rating) {
+    switch (rating) {
+      case 'Excellent':
+        return Colors.green;
+      case 'Good':
+        return Colors.blue;
+      case 'Fair':
+        return Colors.orange;
+      case 'Poor':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    List<String> photos = widget.inspection.photos.isNotEmpty
+        ? widget.inspection.photos.split(',')
+        : [];
+
+    return Scaffold(
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        title: Text("Details", style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.edit, color: Colors.blueAccent),
+            onPressed: editRecord,
+            tooltip: 'Edit',
+          ),
+          IconButton(
+            icon: Icon(Icons.delete_outline, color: Colors.redAccent),
+            onPressed: confirmDelete,
+            tooltip: 'Delete',
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // --- HEADER SECTION ---
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.inspection.propertyName,
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      height: 1.2,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        size: 14,
+                        color: Colors.grey[600],
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        formatDate(widget.inspection.dateCreated),
+                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: colorRating(widget.inspection.rating),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: colorRating(widget.inspection.rating),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.star,
+                          size: 18,
+                          color: colorRating(widget.inspection.rating),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          widget.inspection.rating,
+                          style: TextStyle(
+                            color: colorRating(widget.inspection.rating),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // --- DESCRIPTION SECTION ---
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.notes, color: Colors.grey),
+                          SizedBox(width: 8),
+                          Text(
+                            "Description / Issues",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Divider(height: 24),
+                      Text(
+                        widget.inspection.description,
+                        style: TextStyle(
+                          fontSize: 16,
+                          height: 1.5,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            SizedBox(height: 16),
+
+            // --- LOCATION SECTION ---
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.location_on, color: Colors.blue),
+                      ),
+                      SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Location Coordinates",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              "${widget.inspection.latitude.toStringAsFixed(5)}, ${widget.inspection.longitude.toStringAsFixed(5)}",
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: openMap,
+                        icon: Icon(Icons.map, size: 18),
+                        label: Text("Open Map"),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.blue,
+                          side: BorderSide(color: Colors.blue),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            SizedBox(height: 16),
+
+            // --- PHOTOS SECTION ---
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Evidence Photos",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  photos.isEmpty
+                      ? Container(
+                          height: 100,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: Center(child: Text("No photos attached")),
+                        )
+                      : GridView.builder(
+                          shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                                childAspectRatio: 1.0,
+                              ),
+                          itemCount: photos.length,
+                          itemBuilder: (context, index) {
+                            return GestureDetector(
+                              onTap: () {
+                                // Optional: Implement full screen view
+                              },
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.file(
+                                  File(photos[index]),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ],
+              ),
+            ),
+            SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  //Confirmation Dialog
+  void confirmDelete() {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -58,246 +347,12 @@ class _InspectionDetailScreenState extends State<InspectionDetailScreen> {
     );
   }
 
-  void _editRecord() {
-    // We use pushReplacement so when they save the edit, it goes back to the list
-    // (Or you could push and then setState to refresh details)
+  void editRecord() {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => AddInspectionScreen(inspection: widget.inspection),
-      ),
-    );
-  }
-
-  // Helper for dates
-  String _formatDate(String dateString) {
-    try {
-      return DateFormat('MMMM d, yyyy • h:mm a').format(DateTime.parse(dateString));
-    } catch (e) {
-      return dateString;
-    }
-  }
-
-  // Helper for Rating Colors
-  Color _getRatingColor(String rating) {
-    switch (rating) {
-      case 'Excellent': return Colors.green;
-      case 'Good': return Colors.blue;
-      case 'Fair': return Colors.orange;
-      case 'Poor': return Colors.red;
-      default: return Colors.grey;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    List<String> photos = widget.inspection.photos.isNotEmpty 
-        ? widget.inspection.photos.split(',') 
-        : [];
-
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        title: const Text("Details", style: TextStyle(fontWeight: FontWeight.bold)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit, color: Colors.blueAccent),
-            onPressed: _editRecord,
-            tooltip: 'Edit',
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-            onPressed: _confirmDelete,
-            tooltip: 'Delete',
-          )
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // --- HEADER SECTION ---
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.inspection.propertyName,
-                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, height: 1.2),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
-                      const SizedBox(width: 6),
-                      Text(
-                        _formatDate(widget.inspection.dateCreated),
-                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: _getRatingColor(widget.inspection.rating).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: _getRatingColor(widget.inspection.rating).withOpacity(0.5)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.star, size: 18, color: _getRatingColor(widget.inspection.rating)),
-                        const SizedBox(width: 6),
-                        Text(
-                          widget.inspection.rating,
-                          style: TextStyle(
-                            color: _getRatingColor(widget.inspection.rating),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-
-            // --- DESCRIPTION SECTION ---
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.notes, color: Colors.grey),
-                          SizedBox(width: 8),
-                          Text("Description / Issues", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        ],
-                      ),
-                      const Divider(height: 24),
-                      Text(
-                        widget.inspection.description,
-                        style: const TextStyle(fontSize: 16, height: 1.5, color: Colors.black87),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // --- LOCATION SECTION ---
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(color: Colors.blue[50], shape: BoxShape.circle),
-                        child: const Icon(Icons.location_on, color: Colors.blue),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text("Location Coordinates", style: TextStyle(fontWeight: FontWeight.bold)),
-                            Text(
-                              "${widget.inspection.latitude.toStringAsFixed(5)}, ${widget.inspection.longitude.toStringAsFixed(5)}",
-                              style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                            ),
-                          ],
-                        ),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: _openMap,
-                        icon: const Icon(Icons.map, size: 18),
-                        label: const Text("Open Map"),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.blue,
-                          side: const BorderSide(color: Colors.blue),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // --- PHOTOS SECTION ---
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Evidence Photos", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
-                  const SizedBox(height: 10),
-                  photos.isEmpty
-                      ? Container(
-                          height: 100,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: const Center(child: Text("No photos attached")),
-                        )
-                      : GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                            childAspectRatio: 1.0, // Square images
-                          ),
-                          itemCount: photos.length,
-                          itemBuilder: (context, index) {
-                            return GestureDetector(
-                              onTap: () {
-                                // Optional: Implement full screen view
-                              },
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.file(
-                                  File(photos[index]),
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 40),
-          ],
-        ),
+        builder: (context) =>
+            AddInspectionScreen(inspection: widget.inspection),
       ),
     );
   }
